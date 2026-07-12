@@ -1,0 +1,52 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html,
+body {
+  background: #fff8f0;
+  color: #1e1e24;
+  -webkit-font-smoothing: antialiased;
+  overscroll-behavior: none;
+}
+
+body {
+  font-family: 'Inter', system-ui, sans-serif;
+}
+
+@keyframes fadein {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.animate-fadein {
+  animation: fadein 0.45s ease-out both;
+}
+
+@keyframes spin-slow {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.animate-spin-slow {
+  animation: spin-slow 1.6s linear infinite;
+}
+.animate-spin-rev {
+  animation: spin-slow 2.4s linear infinite reverse;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-fadein,
+  .animate-spin-slow,
+  .animate-spin-rev {
+    animation: none;
+  }
+  * {
+    transition-duration: 0.01ms !important;
+  }
+}
