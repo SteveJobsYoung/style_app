@@ -5,6 +5,7 @@ import { APP_CONFIG } from '../content/config';
 import { PrimaryAction, ProgressBar, BackButton, Screen, Eyebrow } from '../components/ui';
 import { haptic } from '../telegram';
 import { scoreAnswers, dominantArchetypes } from '../logic/scoring';
+import { track } from '../logic/analytics';
 
 // Всего «шагов» для прогресс-бара: 15 вопросов + 3 внешность = 18
 export const TOTAL_STEPS = 18;
@@ -16,7 +17,7 @@ export function WelcomeScreen() {
   return (
     <Screen>
       <div className="flex min-h-[70vh] flex-col justify-center">
-        <Eyebrow>Стилевая диагностика</Eyebrow>
+        <Eyebrow>Стилевая диагностика | Michele Aleer</Eyebrow>
         <h1 className="font-display text-[42px] font-medium leading-[1.05] text-cream">
           Style
           <br />
@@ -35,7 +36,13 @@ export function WelcomeScreen() {
           ))}
         </ul>
       </div>
-      <PrimaryAction text="Начать" onClick={() => setScreen('quiz')} />
+      <PrimaryAction
+        text="Начать"
+        onClick={() => {
+          track('quiz_start');
+          setScreen('quiz');
+        }}
+      />
     </Screen>
   );
 }
@@ -86,11 +93,14 @@ export function QuizScreen() {
             onClick={() => {
               haptic('light');
               answerQuestion(opt.archetype);
+              track('question_answered', { question: questionIndex + 1 });
               if (isLast) {
                 const finalAnswers = [...answers];
                 finalAnswers[questionIndex] = opt.archetype;
                 const scores = scoreAnswers(finalAnswers);
-                setTestArchetypes(dominantArchetypes(scores));
+                const dominant = dominantArchetypes(scores);
+                setTestArchetypes(dominant);
+                track('archetype_result', { archetypes: dominant.join('+') });
                 setScreen('archetype-result');
               }
             }}

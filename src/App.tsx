@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useApp } from './store';
 import { initTelegram } from './telegram';
+import { track } from './logic/analytics';
 import { WelcomeScreen, QuizScreen } from './screens/StepScreens';
 import { ArchetypeResultScreen } from './screens/ArchetypeScreens';
 import {
@@ -16,6 +17,7 @@ export default function App() {
 
   useEffect(() => {
     initTelegram();
+    track('app_open');
   }, []);
 
   switch (screen) {

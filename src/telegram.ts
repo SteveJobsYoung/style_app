@@ -17,6 +17,10 @@ interface TgMainButton {
 interface TgWebApp {
   initData: string;
   platform: string;
+  initDataUnsafe?: {
+    user?: { id: number };
+    start_param?: string;
+  };
   expand: () => void;
   ready: () => void;
   MainButton: TgMainButton;

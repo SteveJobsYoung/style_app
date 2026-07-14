@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { COMBOS, comboKey } from '../content/combos';
 import { STYLES } from '../content/styles';
 import { ARCHETYPES } from '../content/archetypes';
-import { selectStyles } from './styleSelection';
+import { selectStyles, potentialArchetype, potentialStyles } from './styleSelection';
 import { ALL_ARCHETYPES } from './scoring';
 
 const validStyleIds = new Set(STYLES.map((s) => s.id));
@@ -47,5 +47,27 @@ describe('selectStyles', () => {
     const sel = selectStyles(['rebel', 'ruler']); // порядок не важен
     expect(sel.combo?.title).toBe('Дорогой бунтарь');
     expect(sel.styleIds).toEqual(COMBOS['ruler+rebel'].styleIds);
+  });
+});
+
+describe('potentialArchetype / potentialStyles', () => {
+  it('возвращает сильнейший недоминирующий, если набрал порог', () => {
+    const scores = { ruler: 7, lover: 5, rebel: 2, magician: 1 };
+    // доминируют ruler+lover (разрыв 2) → потенциал rebel? нет, всего 2 балла < 3
+    expect(potentialArchetype(scores, ['ruler', 'lover'])).toBeNull();
+  });
+  it('null, если все недоминирующие слабые', () => {
+    const scores = { ruler: 12, lover: 1, rebel: 1, magician: 1 };
+    expect(potentialArchetype(scores, ['ruler'])).toBeNull();
+  });
+  it('выражённый третий архетип попадает в зону роста', () => {
+    const scores = { ruler: 8, lover: 4, rebel: 2, magician: 1 };
+    expect(potentialArchetype(scores, ['ruler'])).toBe('lover');
+  });
+  it('стили на вырост не дублируют основные и их максимум 2', () => {
+    const main = ['romantic-bohemian'];
+    const gs = potentialStyles('lover', main);
+    expect(gs).toHaveLength(2);
+    expect(gs).not.toContain('romantic-bohemian');
   });
 });

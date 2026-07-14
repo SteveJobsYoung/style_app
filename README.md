@@ -48,6 +48,20 @@ Mini App обязан работать по HTTPS — оба варианта д
 Чтобы кнопка меню бота открывала Mini App: `@BotFather` → `/mybots` → бот →
 Bot Settings → Menu Button → вставь тот же URL.
 
+## Аналитика (PostHog)
+1. Зарегистрируйся на posthog.com (EU-регион), создай проект
+2. Скопируй Project API Key (начинается с `phc_`)
+3. Vercel → твой проект → Settings → Environment Variables:
+   - `VITE_POSTHOG_KEY` = твой ключ
+   - `VITE_POSTHOG_HOST` = `https://eu.i.posthog.com` (если регион EU)
+4. Redeploy (Deployments → троеточие → Redeploy)
+
+Без ключа аналитика молча выключена — локально и в проде ничего не ломается.
+
+События воронки: `app_open` (+source из ?startapp=) → `quiz_start` →
+`question_answered` (номер) → `archetype_result` → `result_view` →
+`cta_click` / `share_click` / `style_link_click`.
+
 ## Логика (для справки)
 - Скоринг: `src/logic/scoring.ts` (+ тесты `scoring.test.ts`)
 - Два архетипа выдаются, если разрыв между №1 и №2 ≤ 2 балла
