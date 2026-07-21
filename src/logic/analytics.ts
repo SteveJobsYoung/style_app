@@ -4,9 +4,13 @@
 
 import { tg } from '../telegram';
 
-const KEY = import.meta.env.VITE_POSTHOG_KEY as string | undefined;
+// Чистим значения от случайных кавычек/бэктиков/пробелов при копипасте из доков
+const clean = (v: string | undefined) =>
+  v?.replace(/[`'"\s]/g, '').replace(/\/+$/, '') || undefined;
+
+const KEY = clean(import.meta.env.VITE_POSTHOG_KEY as string | undefined);
 const HOST =
-  (import.meta.env.VITE_POSTHOG_HOST as string | undefined) ??
+  clean(import.meta.env.VITE_POSTHOG_HOST as string | undefined) ??
   'https://eu.i.posthog.com';
 
 let sessionId: string | null = null;

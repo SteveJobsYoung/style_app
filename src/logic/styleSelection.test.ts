@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { COMBOS, comboKey } from '../content/combos';
 import { STYLES } from '../content/styles';
 import { ARCHETYPES } from '../content/archetypes';
-import { selectStyles, potentialArchetype, potentialStyles } from './styleSelection';
+import { selectStyles, potentialArchetype, growthSelection } from './styleSelection';
 import { ALL_ARCHETYPES } from './scoring';
 
 const validStyleIds = new Set(STYLES.map((s) => s.id));
@@ -64,10 +64,18 @@ describe('potentialArchetype / potentialStyles', () => {
     const scores = { ruler: 8, lover: 4, rebel: 2, magician: 1 };
     expect(potentialArchetype(scores, ['ruler'])).toBe('lover');
   });
-  it('стили на вырост не дублируют основные и их максимум 2', () => {
-    const main = ['romantic-bohemian'];
-    const gs = potentialStyles('lover', main);
-    expect(gs).toHaveLength(2);
-    expect(gs).not.toContain('romantic-bohemian');
+  it('стили на вырост берутся из комбо базы с потенциалом', () => {
+    // база Правитель, потенциал Романтик → стили из комбо ruler+lover
+    const g = growthSelection('ruler', 'lover', []);
+    expect(g.combo?.title).toBeDefined();
+    for (const id of g.styleIds) {
+      expect(COMBOS['ruler+lover'].styleIds).toContain(id);
+    }
+  });
+  it('рост не дублирует основные стили и максимум 2', () => {
+    const main = [...COMBOS['ruler+rebel'].styleIds.slice(0, 2)];
+    const g = growthSelection('ruler', 'rebel', main);
+    expect(g.styleIds.length).toBeLessThanOrEqual(2);
+    for (const id of g.styleIds) expect(main).not.toContain(id);
   });
 });

@@ -50,12 +50,21 @@ export function potentialArchetype(
   return top && scores[top] >= minScore ? top : null;
 }
 
-/** 2 стиля «на вырост» из потенциального архетипа, не дублирующие основные. */
-export function potentialStyles(
+/**
+ * Стили «на вырост»: берём их из КОМБО базового архетипа с потенциальным,
+ * а не из чистого потенциального — рост идёт из базы, а не в сторону.
+ * anchor — сильнейший доминирующий архетип (state.archetypes[0]).
+ * Возвращает до 2 стилей + профиль комбо для подписи.
+ */
+export function growthSelection(
+  anchor: ArchetypeId,
   potential: ArchetypeId,
   mainStyleIds: string[]
-): string[] {
-  return archetypeById(potential)
-    .styleIds.filter((id) => !mainStyleIds.includes(id))
-    .slice(0, 2);
+): { styleIds: string[]; combo: ComboProfile | null } {
+  const combo = COMBOS[comboKey([anchor, potential])] ?? null;
+  const pool = combo ? combo.styleIds : archetypeById(potential).styleIds;
+  return {
+    styleIds: pool.filter((id) => !mainStyleIds.includes(id)).slice(0, 2),
+    combo,
+  };
 }

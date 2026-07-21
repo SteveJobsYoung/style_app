@@ -12,9 +12,10 @@ import {
 import { APP_CONFIG } from '../content/config';
 import { Ph, Screen, Eyebrow } from '../components/ui';
 import { haptic, openUrl, shareText } from '../telegram';
-import { selectStyles, potentialArchetype, potentialStyles } from '../logic/styleSelection';
+import { selectStyles, potentialArchetype, growthSelection } from '../logic/styleSelection';
 import { scoreAnswers, ALL_ARCHETYPES } from '../logic/scoring';
 import { track } from '../logic/analytics';
+import { refsFor } from '../content/references';
 import type { Palette } from '../content/types';
 
 /* ── Аккордеон-секция ── */
@@ -118,12 +119,20 @@ export function ResultScreen() {
   const { styleIds, combo } = selectStyles(state.archetypes);
   const styles = styleIds.map(styleById);
 
-  // Зона роста: сильнейший недоминирующий архетип (если реально выражен)
+  // Зона роста: сильнейший недоминирующий архетип (если реально выражен).
+  // Стили берём из комбо «база + потенциал» — рост из базы, а не в сторону.
   const potential = potentialArchetype(scores, state.archetypes);
-  const growthStyles = potential
-    ? potentialStyles(potential, styleIds).map(styleById)
-    : [];
+  const growth = potential
+    ? growthSelection(state.archetypes[0], potential, styleIds)
+    : null;
+  const growthStyles = growth ? growth.styleIds.map(styleById) : [];
   const accessories = [...new Set(archs.flatMap((a) => a.accessories))];
+
+  // Референсы для насмотренности — по доминирующим архетипам, без дублей по handle
+  const refs = archs
+    .flatMap((a) => refsFor(a.id))
+    .filter((r, i, arr) => arr.findIndex((x) => x.handle === r.handle) === i)
+    .slice(0, 5);
 
   useEffect(() => {
     track('result_view', {
@@ -132,6 +141,67 @@ export function ResultScreen() {
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const [pdfBusy, setPdfBusy] = useState(false);
+
+  const downloadPdf = async () => {
+    track('save_click');
+    haptic('medium');
+    setPdfBusy(true);
+    try {
+      const { buildPassportPdf } = await import('../logic/passportPdf');
+      const paletteGroups =
+        face.primaryPalette === 'light'
+          ? [LIGHT_PALETTE.colors, DARK_PALETTE.colors]
+          : face.primaryPalette === 'dark'
+            ? [DARK_PALETTE.colors, LIGHT_PALETTE.colors]
+            : [LIGHT_PALETTE.colors, DARK_PALETTE.colors];
+
+      const blob = await buildPassportPdf({
+        archetypeNames: archs.map((a) => a.name),
+        comboTitle: combo?.title ?? null,
+        scoreRows: [...ALL_ARCHETYPES]
+          .sort((a, b) => scores[b] - scores[a])
+          .map((id) => ({
+            name: archetypeById(id).name,
+            score: scores[id],
+            dominant: state.archetypes.includes(id),
+          })),
+        bodyName: body.name,
+        faceName: face.name,
+        shapeName: shape.name,
+        styles: styles.map((st) => ({
+          name: st.name,
+          description: st.description,
+          whyFits: st.whyFits,
+          image: st.image,
+        })),
+        hairRules: shape.hairRules,
+        accessories,
+        palette: {
+          name: '',
+          note: face.paletteNote,
+          colors: paletteGroups,
+        },
+        beardRules: face.beardRules,
+        fitRules: body.fitRules,
+        growthTitle: growth?.combo?.title ?? null,
+        growthStyles: growthStyles.map((s) => s.name),
+        refs: refs.map((r) => ({ handle: r.handle, note: r.note })),
+      });
+
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'style-passport.pdf';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 4000);
+    } finally {
+      setPdfBusy(false);
+    }
+  };
 
   const share = () => {
     track('share_click');
@@ -279,8 +349,15 @@ export function ResultScreen() {
                 <span className="font-display italic text-cream">
                   {archetypeById(potential).name}
                 </span>{' '}
-                ({scores[potential]} из 15). Это не твоя база, но направление, куда
-                твой стиль может расти. Присмотрись:
+                ({scores[potential]} из 15). В связке с твоей базой это направление{' '}
+                {growth?.combo ? (
+                  <span className="font-display italic text-wine">
+                    «{growth.combo.title}»
+                  </span>
+                ) : (
+                  'роста'
+                )}
+                . Присмотрись:
               </p>
               <div className="mt-4 grid grid-cols-2 gap-3">
                 {growthStyles.map((s2) => (
@@ -366,6 +443,38 @@ export function ResultScreen() {
         <Section n="VI" title="Посадка вещей">
           <Rules items={body.fitRules} />
         </Section>
+
+        <Section n="VII" title="Насмотренность">
+          <p className="mb-4 font-body text-[13px] leading-relaxed text-cream/70">
+            Стиль растёт из насмотренности. Подпишись на этих мужчин — их эстетика
+            резонирует с твоим архетипом. Смотри, впитывай, замечай детали.
+          </p>
+          <div className="space-y-2">
+            {refs.map((r) => (
+              <button
+                key={r.handle}
+                onClick={() => {
+                  track('ref_click', { handle: r.handle });
+                  haptic('light');
+                  openUrl(`https://instagram.com/${r.handle}`);
+                }}
+                className="flex w-full items-center justify-between border border-line bg-surface px-4 py-3 text-left transition-colors active:border-wine focus-visible:outline focus-visible:outline-1 focus-visible:outline-wine"
+              >
+                <span>
+                  <span className="font-display text-[15px] italic text-cream">
+                    @{r.handle}
+                  </span>
+                  <span className="mt-0.5 block font-body text-[11px] text-muted">
+                    {r.note}
+                  </span>
+                </span>
+                <span className="font-body text-[11px] uppercase tracking-[0.2em] text-wine">
+                  →
+                </span>
+              </button>
+            ))}
+          </div>
+        </Section>
       </div>
 
       {/* CTA */}
@@ -385,6 +494,13 @@ export function ResultScreen() {
           className="mt-5 w-full bg-wine py-4 font-body text-sm font-semibold uppercase tracking-[0.2em] text-canvas transition-colors active:bg-winedeep"
         >
           {APP_CONFIG.cta.text}
+        </button>
+        <button
+          onClick={downloadPdf}
+          disabled={pdfBusy}
+          className="mt-3 w-full border border-wine bg-surface py-3.5 font-body text-xs uppercase tracking-[0.25em] text-wine transition-colors active:bg-peach/25 disabled:opacity-60"
+        >
+          {pdfBusy ? 'Собираю паспорт…' : 'Скачать PDF-паспорт'}
         </button>
         <button
           onClick={share}
