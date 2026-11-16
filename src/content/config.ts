@@ -1,7 +1,7 @@
 // Общие настройки приложения — здесь меняются CTA и тексты приветствия.
 
 export const APP_CONFIG = {
-  appName: 'Style Is All You Need',
+  appName: 'All You Need Is Style | Michele Aleer',
   welcomeTitle: 'All You Need Is Style | Michele Aleer',
   welcomeSubtitle:
     'Диагностика твоего стиля за 5 минут. Тест определит твой архетип, подберёт подходящие стили и даст правила по причёскам, цветам, аксессуарам и бороде — под твою внешность, а не «в среднем по больнице».',
