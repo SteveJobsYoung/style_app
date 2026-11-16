@@ -17,7 +17,7 @@ export function WelcomeScreen() {
   return (
     <Screen>
       <div className="flex min-h-[70vh] flex-col justify-center">
-        <Eyebrow>Стилевая диагностика | Michele Aleer </Eyebrow>
+        <Eyebrow>Найди стиль | Michele Aleer </Eyebrow>
         <h1 className="font-display text-[42px] font-medium leading-[1.05] text-cream">
           Style
           <br />
